@@ -1,0 +1,3 @@
+Gene expression is highly relevant for cancer development. To derive meaningful insights about the relation of gene expression and different cancer types, the cancer RNA-Seq data was analysed using machine-learning approaches to identify the type of cancer dependant on the expression pattern of 20,531 genes.
+- Cancer highly relevant medical problem
+- early assessment of cancer type might help administering medication early
