@@ -30,10 +30,15 @@ with open(snakemake.output.label_mapping, "w") as f:
 
 #log1p-transformation
 X = df.drop(columns=['Class', 'Unnamed: 0'])
-x_log = np.log1p(X)
+X_log = np.log1p(X)
+
+#filter for genes with high variance
+variance = X_log.var()
+X_filtered = X_log[variance[variance > variance.median()].index]
+print(f'Filtering leaves {len(X_filtered.columns)} genes')
 
 #combine X and y for output
-out = x_log.copy()
+out = X_filtered.copy()
 out['Class'] = y
 
 #save output

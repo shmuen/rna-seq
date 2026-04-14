@@ -22,7 +22,8 @@ rule pca:
         mapping = "results/preprocessed/label_mapping.json"
     output:
         components = "results/pca/components.csv",
-        plot = "results/pca/pca_plot.png"
+        plot = "results/pca/pca_plot.png",
+        variance_plot = "results/pca/variance_plot.png"
     conda:
         "envs/ml.yaml"
     params:
