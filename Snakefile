@@ -16,9 +16,23 @@ rule preprocess:
     script:
         "scripts/preprocess.py"
 
+rule split_data:
+    input:
+        data = "results/preprocessed/data_clean.csv"
+    output:
+        train = "results/split/train.csv",
+        test = "results/split/test.csv"
+    params:
+        test_size = config["split"]["test_size"],
+        seed = config["split"]["seed"]
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/split_data.py"
+
 rule pca:
     input:
-        data = "results/preprocessed/data_clean.csv",
+        data = "results/split/train.csv",
         mapping = "results/preprocessed/label_mapping.json"
     output:
         components = "results/pca/components.csv",

@@ -42,6 +42,5 @@ out = X_filtered.copy()
 out['Class'] = y
 
 #save output
-output_path = snakemake.output.data
-out.to_csv(output_path)
+out.to_csv(snakemake.output.data)
 
