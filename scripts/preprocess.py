@@ -1,10 +1,7 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import json
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import StandardScaler
 
 #import of data
 rna_seq = pd.read_csv(snakemake.input.data)
@@ -25,7 +22,6 @@ print(f'Duplicates: {df.duplicated().sum()}')
 #encoding labels
 le = LabelEncoder()
 y = le.fit_transform(labels["Class"])
-
 
 #save encoding
 mapping = {str(k): int(v) for k, v in zip(le.classes_, le.transform(le.classes_))}
