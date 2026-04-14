@@ -1,2 +1,3 @@
 data/
 .snakemake
+results/processed/data_clean.csv
