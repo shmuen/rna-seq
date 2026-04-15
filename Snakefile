@@ -1,8 +1,10 @@
 configfile: "config/config.yaml"
 
+MODEL = config["model"]
+
 rule all:
     input:
-        "results/pca/pca_plot.png"
+        expand("models/{model}.pkl", model = MODEL)
 
 rule preprocess:
     input:
@@ -26,7 +28,7 @@ rule split_data:
         y_test = "results/split/y_test.csv"
     params:
         test_size = config["split"]["test_size"],
-        seed = config["split"]["seed"]
+        seed = config["seed"]
     conda:
         "envs/ml.yaml"
     script:
@@ -45,9 +47,9 @@ rule scale:
 
 rule pca:
     input:
+        scaler = "results/scale/scaler.pkl",
         y_train = "results/split/y_train.csv",
-        mapping = "results/preprocessed/label_mapping.json",
-        scaler = "results/scale/scaler.pkl"
+        mapping = "results/preprocessed/label_mapping.json"
     output:
         components = "results/pca/components.csv",
         plot = "results/pca/pca_plot.png",
@@ -58,3 +60,16 @@ rule pca:
         n_components = config["pca"]["n_components"]
     script:
         "scripts/pca.py"
+
+rule train_models:
+    input:
+        X_train = "results/pca/components.csv",
+        y_train = "results/split/y_train.csv"
+    output:
+        model = "results/models/{model}.pkl"
+    params:
+        seed = config["seed"]
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/models/train_{wildcards.model}.py"

@@ -4,5 +4,5 @@ pca:
   n_components: 50
 split:
   test_size: 0.2
-  seed: 42
-model: "randomforest"
+seed: 42
+model: ["randomforest", "svm", "logistic_regression", "xgboost"]
