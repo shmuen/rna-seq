@@ -1,24 +1,20 @@
 import pandas as pd
 import numpy as np
+import joblib
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import json
 
-#import preprocessed data, parameter and mapping
-df = pd.read_csv(snakemake.input.data)
-X = df.drop(columns=['Class'])
-y = df['Class']
+#import preprocessed data, parameter, mapping and scaler
+X_scaled = joblib.load(snakemake.input.scaler)
+y = pd.read_csv(snakemake.input.y_train)['Class']
 n = snakemake.params.n_components
 
 with open(snakemake.input.mapping) as f:
     label_mapping = json.load(f)
 
 inverse_mapping = {v: k for k, v in label_mapping.items()}
-
-#scaling of data
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
 
 #PCA
 pca = PCA(n_components=n)
@@ -37,7 +33,7 @@ df_components = pd.DataFrame(
     components,
     columns=[f'PC{i+1}' for i in range(n)]
 )
-df_components['Class'] = y.values
+# df_components['Class'] = y.values
 df_components.to_csv(snakemake.output.components, index = False)
 
 #plot PCA

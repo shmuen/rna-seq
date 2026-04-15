@@ -20,8 +20,10 @@ rule split_data:
     input:
         data = "results/preprocessed/data_clean.csv"
     output:
-        train = "results/split/train.csv",
-        test = "results/split/test.csv"
+        X_train = "results/split/X_train.csv",
+        X_test = "results/split/X_test.csv",
+        y_train = "results/split/y_train.csv",
+        y_test = "results/split/y_test.csv"
     params:
         test_size = config["split"]["test_size"],
         seed = config["split"]["seed"]
@@ -30,10 +32,22 @@ rule split_data:
     script:
         "scripts/split_data.py"
 
+rule scale:
+    input:
+        data = "results/split/X_train.csv"
+    output:
+        scaler = "results/scale/scaler.pkl",
+        scaled = "results/scale/scaled.csv"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/scale.py"
+
 rule pca:
     input:
-        data = "results/split/train.csv",
-        mapping = "results/preprocessed/label_mapping.json"
+        y_train = "results/split/y_train.csv",
+        mapping = "results/preprocessed/label_mapping.json",
+        scaler = "results/scale/scaler.pkl"
     output:
         components = "results/pca/components.csv",
         plot = "results/pca/pca_plot.png",

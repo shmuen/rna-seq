@@ -14,9 +14,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=snakemake.params.seed
 )
 
-X_train['Class'] = y_train
-X_test['Class'] = y_test
-
-X_train.to_csv(snakemake.output.train)
-X_test.to_csv(snakemake.output.test)
-
+X_train.to_csv(snakemake.output.X_train)
+X_test.to_csv(snakemake.output.X_test)
+y_train.to_csv(snakemake.output.y_train)
+y_test.to_csv(snakemake.output.y_test)
