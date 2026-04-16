@@ -4,7 +4,7 @@ MODEL = config["model"]
 
 rule all:
     input:
-        expand("models/{model}.pkl", model = MODEL)
+        expand("results/validation/{model}_metrics.csv", model = MODEL)
 
 rule preprocess:
     input:
@@ -47,11 +47,12 @@ rule scale:
 
 rule pca:
     input:
-        scaler = "results/scale/scaler.pkl",
+        scaled = "results/scale/scaled.csv",
         y_train = "results/split/y_train.csv",
         mapping = "results/preprocessed/label_mapping.json"
     output:
         components = "results/pca/components.csv",
+        pca = "results/pca/pca.pkl",
         plot = "results/pca/pca_plot.png",
         variance_plot = "results/pca/variance_plot.png"
     conda:
@@ -73,3 +74,17 @@ rule train_models:
         "envs/ml.yaml"
     script:
         "scripts/models/train_{wildcards.model}.py"
+
+rule validate_model:
+    input:
+        X_test = "results/split/X_test.csv",
+        y_test = "results/split/y_test.csv",
+        scaler = "results/scale/scaler.pkl",
+        pca = "results/pca/pca.pkl",
+        model = "results/models/{model}.pkl"
+    output:
+        metrics = "results/validation/{model}_metrics.csv"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/validate_model.py"

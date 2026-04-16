@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import json
 
 #import preprocessed data, parameter, mapping and scaler
-X_scaled = joblib.load(snakemake.input.scaler)
+X_scaled = pd.read_csv(snakemake.input.scaled)
 y = pd.read_csv(snakemake.input.y_train)['Class']
 n = snakemake.params.n_components
 
@@ -16,9 +16,11 @@ with open(snakemake.input.mapping) as f:
 
 inverse_mapping = {v: k for k, v in label_mapping.items()}
 
-#PCA
+#PCA on training data and save PCA
 pca = PCA(n_components=n)
-components = pca.fit_transform(X_scaled)
+pca.fit(X_scaled.values)
+components = pca.transform(X_scaled)
+joblib.dump(pca, snakemake.output.pca)
 
 #full PCA
 pca_full = PCA()
