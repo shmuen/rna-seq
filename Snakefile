@@ -4,7 +4,7 @@ MODEL = config["model"]
 
 rule all:
     input:
-        expand("results/validation/{model}_metrics.csv", model = MODEL)
+        expand("results/validation/{model}_report.csv", model = MODEL)
 
 rule preprocess:
     input:
@@ -83,7 +83,7 @@ rule validate_model:
         pca = "results/pca/pca.pkl",
         model = "results/models/{model}.pkl"
     output:
-        metrics = "results/validation/{model}_metrics.csv"
+        report = "results/validation/{model}_report.csv"
     conda:
         "envs/ml.yaml"
     script:

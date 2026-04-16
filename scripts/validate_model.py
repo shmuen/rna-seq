@@ -1,6 +1,7 @@
 import pandas as pd
 import joblib
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import classification_report
 
 #import data and model
 X_test = pd.read_csv(snakemake.input.X_test)
@@ -14,13 +15,5 @@ X_pca = pca.transform(X_scaled)
 
 y_pred = model.predict(X_pca)
 
-metrics = {
-    "accuracy": accuracy_score(y_test, y_pred),
-    "f1_macro": f1_score(y_test, y_pred, average="macro"),
-    "f1_weighted": f1_score(y_test, y_pred, average="weighted"),
-    "auc":  roc_auc_score(y_test, model.predict_proba(X_pca),
-                          multi_class='ovr', average='macro')
-}
-
-pd.DataFrame([metrics]).to_csv(snakemake.output.metrics, index=False)
-
+report = pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).T
+report.to_csv(snakemake.output.report)
