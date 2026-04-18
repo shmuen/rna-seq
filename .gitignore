@@ -3,3 +3,4 @@ data/
 results/preprocessed/data_clean.csv
 results/split/
 results/scale/
+logs/

@@ -5,6 +5,7 @@ MODEL = config["model"]
 rule all:
     input:
         expand("results/validation/{model}_report.csv", model = MODEL)
+
 rule preprocess:
     input:
         data = config["data_path"],
@@ -12,6 +13,8 @@ rule preprocess:
     output:
         data = "results/preprocessed/data_clean.csv",
         label_mapping = "results/preprocessed/label_mapping.json"
+    log:
+        "logs/preprocess.log"
     conda:
         "envs/ml.yaml"
     script:
@@ -28,6 +31,8 @@ rule split_data:
     params:
         test_size = config["split"]["test_size"],
         seed = config["seed"]
+    log:
+        "logs/split_data.log"
     conda:
         "envs/ml.yaml"
     script:
@@ -41,6 +46,8 @@ rule scale:
         scaler = "results/scale/scaler.pkl",
         X_train_scaled = "results/scale/X_train_scaled.csv",
         X_test_scaled = "results/scale/X_test_scaled.csv"
+    log:
+        "logs/scale.log"
     conda:
         "envs/ml.yaml"
     script:
@@ -58,6 +65,8 @@ rule pca:
         pca = "results/pca/pca.pkl",
         plot = "results/pca/pca_plot.png",
         variance_plot = "results/pca/variance_plot.png"
+    log:
+        "logs/pca.log"
     conda:
         "envs/ml.yaml"
     params:
@@ -73,6 +82,8 @@ rule train_models:
         model = "results/models/{model}.pkl"
     params:
         seed = config["seed"]
+    log:
+        "logs/train_model_{model}.log"
     conda:
         "envs/ml.yaml"
     script:
@@ -88,10 +99,13 @@ rule validate_model:
         report = "results/validation/{model}_report.csv",
         cm = "results/validation/{model}_cm.csv",
         cm_plot = "results/validation/{model}_cm_plot.png",
-
     params:
         n_components = config["pca"]["n_components"]
+    log:
+        "logs/validate_model_{model}.log"
     conda:
         "envs/ml.yaml"
     script:
         "scripts/validate_model.py"
+
+        
