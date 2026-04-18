@@ -1,6 +1,4 @@
 data/
 .snakemake
-results/preprocessed/data_clean.csv
-results/split/
-results/scale/
+results/
 logs/

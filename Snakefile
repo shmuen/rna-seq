@@ -4,7 +4,7 @@ MODEL = config["model"]
 
 rule all:
     input:
-        expand("results/validation/{model}_report.csv", model = MODEL)
+        expand("results/plots/{model}_cm_plot.png", model = MODEL)
 
 rule preprocess:
     input:
@@ -89,23 +89,51 @@ rule train_models:
     script:
         "scripts/models/train_{wildcards.model}.py"
 
-rule validate_model:
+rule predict:
     input:
         X_test_pca = "results/pca/X_test_pca.csv",
-        y_test = "results/split/y_test.csv",
-        model = "results/models/{model}.pkl",
-        mapping = "results/preprocessed/label_mapping.json"
+        model = "results/models/{model}.pkl"
     output:
-        report = "results/validation/{model}_report.csv",
-        cm = "results/validation/{model}_cm.csv",
-        cm_plot = "results/validation/{model}_cm_plot.png",
-    params:
-        n_components = config["pca"]["n_components"]
+        y_pred = "results/prediction/y_pred_{model}.csv",
+        y_proba = "results/prediction/y_proba_{model}.csv"
     log:
-        "logs/validate_model_{model}.log"
+        "logs/predict_{model}.log"
     conda:
         "envs/ml.yaml"
     script:
-        "scripts/validate_model.py"
+        "scripts/predict.py"
+
+rule evaluate_metrics:
+    input:
+        y_test = "results/split/y_test.csv",
+        y_pred = "results/prediction/y_pred_{model}.csv",
+        y_proba = "results/prediction/y_proba_{model}.csv",
+        model = "results/models/{model}.pkl",
+        mapping = "results/preprocessed/label_mapping.json"
+    output:
+        report = "results/metrics/{model}_report.csv",
+        cm = "results/metrics/{model}_cm.csv",
+        roc = "results/metrics/{model}_roc.csv",
+    log:
+        "logs/evaluate_metrics_{model}.log"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/evaluate_metrics.py"
+
+rule plot_metrics:
+    input:
+        cm = "results/metrics/{model}_cm.csv",
+        roc = "results/metrics/{model}_roc.csv",
+        mapping = "results/preprocessed/label_mapping.json"
+    output:
+        cm_plot = "results/plots/{model}_cm_plot.png",
+        roc_plot = "results/plots/{model}_roc_plot.png"
+    log:
+        "logs/plot_metrics_{model}.log"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/plot_metrics.py"
 
         
