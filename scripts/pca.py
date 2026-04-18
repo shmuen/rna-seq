@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
-import joblib
+import joblib, json
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-import json
 
 #import preprocessed data, parameter, mapping and scaler
-X_scaled = pd.read_csv(snakemake.input.scaled)
+X_train_scaled = pd.read_csv(snakemake.input.X_train_scaled)
+X_test_scaled = pd.read_csv(snakemake.input.X_test_scaled)
 y = pd.read_csv(snakemake.input.y_train)['Class']
 n = snakemake.params.n_components
 
@@ -18,33 +17,33 @@ inverse_mapping = {v: k for k, v in label_mapping.items()}
 
 #PCA on training data and save PCA
 pca = PCA(n_components=n)
-pca.fit(X_scaled.values)
-components = pca.transform(X_scaled)
+X_train_pca = pca.fit_transform(X_train_scaled)
 joblib.dump(pca, snakemake.output.pca)
+
+#transform scaled test data
+X_test_pca = pca.transform(X_test_scaled)
+
+#save compoments
+components_cols = [f'PC{i+1}' for i in range(n)]
+pd.DataFrame(X_train_pca, columns=components_cols).to_csv(snakemake.output.X_train_pca, index = False)
+pd.DataFrame(X_test_pca, columns=components_cols).to_csv(snakemake.output.X_test_pca, index = False)
 
 #full PCA
 pca_full = PCA()
-pca_full.fit(X_scaled)
+pca_full.fit(X_train_scaled)
 
+#get amount of compoments to reach 80% variance
 cumsum = np.cumsum(pca_full.explained_variance_ratio_)
 n_components_80 = np.argmax(cumsum >= 0.8) + 1
 print(f'components for 80% variance: {n_components_80}')
 
-#save compoments
-df_components = pd.DataFrame(
-    components,
-    columns=[f'PC{i+1}' for i in range(n)]
-)
-# df_components['Class'] = y.values
-df_components.to_csv(snakemake.output.components, index = False)
-
-#plot PCA
+#visualize PCA and variance
 plt.figure(figsize=(10,8))
 for label in y.unique():
     mask = y == label
     plt.scatter(
-        components[mask, 0],
-        components[mask, 1],
+        X_train_pca[mask, 0],
+        X_train_pca[mask, 1],
         label = inverse_mapping[label],
         alpha = 0.6
     )

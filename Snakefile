@@ -5,7 +5,6 @@ MODEL = config["model"]
 rule all:
     input:
         expand("results/validation/{model}_report.csv", model = MODEL)
-
 rule preprocess:
     input:
         data = config["data_path"],
@@ -36,10 +35,12 @@ rule split_data:
 
 rule scale:
     input:
-        data = "results/split/X_train.csv"
+        X_train = "results/split/X_train.csv",
+        X_test = "results/split/X_test.csv"
     output:
         scaler = "results/scale/scaler.pkl",
-        scaled = "results/scale/scaled.csv"
+        X_train_scaled = "results/scale/X_train_scaled.csv",
+        X_test_scaled = "results/scale/X_test_scaled.csv"
     conda:
         "envs/ml.yaml"
     script:
@@ -47,11 +48,13 @@ rule scale:
 
 rule pca:
     input:
-        scaled = "results/scale/scaled.csv",
+        X_train_scaled = "results/scale/X_train_scaled.csv",
+        X_test_scaled = "results/scale/X_test_scaled.csv",
         y_train = "results/split/y_train.csv",
         mapping = "results/preprocessed/label_mapping.json"
     output:
-        components = "results/pca/components.csv",
+        X_train_pca = "results/pca/X_train_pca.csv",
+        X_test_pca = "results/pca/X_test_pca.csv",
         pca = "results/pca/pca.pkl",
         plot = "results/pca/pca_plot.png",
         variance_plot = "results/pca/variance_plot.png"
@@ -64,7 +67,7 @@ rule pca:
 
 rule train_models:
     input:
-        X_train = "results/pca/components.csv",
+        X_train_pca = "results/pca/X_train_pca.csv",
         y_train = "results/split/y_train.csv"
     output:
         model = "results/models/{model}.pkl"
@@ -77,13 +80,17 @@ rule train_models:
 
 rule validate_model:
     input:
-        X_test = "results/split/X_test.csv",
+        X_test_pca = "results/pca/X_test_pca.csv",
         y_test = "results/split/y_test.csv",
-        scaler = "results/scale/scaler.pkl",
-        pca = "results/pca/pca.pkl",
-        model = "results/models/{model}.pkl"
+        model = "results/models/{model}.pkl",
+        mapping = "results/preprocessed/label_mapping.json"
     output:
-        report = "results/validation/{model}_report.csv"
+        report = "results/validation/{model}_report.csv",
+        cm = "results/validation/{model}_cm.csv",
+        cm_plot = "results/validation/{model}_cm_plot.png",
+
+    params:
+        n_components = config["pca"]["n_components"]
     conda:
         "envs/ml.yaml"
     script:
