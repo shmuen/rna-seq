@@ -4,7 +4,8 @@ MODEL = config["model"]
 
 rule all:
     input:
-        expand("results/plots/{model}_cm_plot.png", model = MODEL)
+        expand("results/plots/{model}_cm_plot.png", model = MODEL),
+        expand("results/plots/{model}_roc_plot.png", model = MODEL)
 
 rule preprocess:
     input:
@@ -15,6 +16,8 @@ rule preprocess:
         label_mapping = "results/preprocessed/label_mapping.json"
     log:
         "logs/preprocess.log"
+    benchmark:
+        "benchmarks/preprocess.txt" 
     conda:
         "envs/ml.yaml"
     script:
@@ -67,10 +70,12 @@ rule pca:
         variance_plot = "results/pca/variance_plot.png"
     log:
         "logs/pca.log"
-    conda:
-        "envs/ml.yaml"
+    benchmark:
+        "benchmarks/pca.txt" 
     params:
         n_components = config["pca"]["n_components"]
+    conda:
+        "envs/ml.yaml"
     script:
         "scripts/pca.py"
 
@@ -84,6 +89,11 @@ rule train_models:
         seed = config["seed"]
     log:
         "logs/train_model_{model}.log"
+    threads: 4
+    resources:
+        mem_mb = 4000
+    benchmark:
+        "benchmarks/train_{model}.txt" 
     conda:
         "envs/ml.yaml"
     script:
@@ -114,6 +124,7 @@ rule evaluate_metrics:
         report = "results/metrics/{model}_report.csv",
         cm = "results/metrics/{model}_cm.csv",
         roc = "results/metrics/{model}_roc.csv",
+        calibration = "results/metrics/{model}_calibration.csv"
     log:
         "logs/evaluate_metrics_{model}.log"
     conda:
@@ -125,10 +136,13 @@ rule plot_metrics:
     input:
         cm = "results/metrics/{model}_cm.csv",
         roc = "results/metrics/{model}_roc.csv",
+        y_proba = "results/prediction/y_proba_{model}.csv",
+        calibration = "results/metrics/{model}_calibration.csv",
         mapping = "results/preprocessed/label_mapping.json"
     output:
         cm_plot = "results/plots/{model}_cm_plot.png",
-        roc_plot = "results/plots/{model}_roc_plot.png"
+        roc_plot = "results/plots/{model}_roc_plot.png",
+        calibration_curve = "results/plots/{model}_calibration_curve.png"
     log:
         "logs/plot_metrics_{model}.log"
     conda:
@@ -136,4 +150,3 @@ rule plot_metrics:
     script:
         "scripts/plot_metrics.py"
 
-        

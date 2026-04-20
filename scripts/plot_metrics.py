@@ -1,8 +1,8 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import json
 from sklearn.metrics import ConfusionMatrixDisplay
-
 
 
 #load y_test, y_proba, cm and roc data
@@ -38,3 +38,46 @@ plt.title("Multiclass ROC (OvR) - " + snakemake.wildcards.model)
 plt.legend()
 
 plt.savefig(snakemake.output.roc_plot)
+
+#calibration curve
+calibration = pd.read_csv(snakemake.input.calibration)
+
+classes = calibration["class"].unique()
+colors = plt.colormaps["tab10"](np.linspace(0, 1, len(classes)))
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Plot 1: Calibration Curve
+ax1 = axes[0]
+ax1.plot([0, 1], [0, 1], "k--", label="perfectly calibrated")
+
+for cls, color in zip(classes, colors):
+    sub = calibration[calibration["class"] == cls]
+    ax1.plot(
+        sub["mean_predicted_value"],
+        sub["fraction_of_positives"],
+        marker="o", label=cls, color=color
+    )
+
+ax1.set_xlabel("mean predicted value")
+ax1.set_ylabel("fraction of positives")
+ax1.set_title("Calibration Curve")
+ax1.legend()
+ax1.set_xlim(0, 1)
+ax1.set_ylim(0, 1)
+
+y_proba = pd.read_csv(snakemake.input.y_proba).values
+confidence = y_proba.max(axis=1)  # höchste Wahrscheinlichkeit je Sample
+
+ax2 = axes[1]
+ax2.hist(confidence, bins=20, color="steelblue", edgecolor="white")
+ax2.set_xlabel("Confidence")
+ax2.set_ylabel("amount of samples")
+ax2.set_title("Confidence Distribution")
+ax2.axvline(confidence.mean(), color="red", linestyle="--",
+            label=f"mean: {confidence.mean():.2f}")
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig(snakemake.output.calibration_curve, dpi=150)
+plt.close()
