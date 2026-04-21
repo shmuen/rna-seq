@@ -150,3 +150,17 @@ rule plot_metrics:
     script:
         "scripts/plot_metrics.py"
 
+rule compare_models:
+    input:
+        reports = expand("results/metrics/{model}_report.csv", model=MODEL),
+        bench = expand("benchmarks/train_{model}.txt", model=MODEL)
+    output:
+        summary = "results/comparison/model_comparison.csv",
+        plot = "results/comparison/barplot.png",
+        heat = "results/comparison/heatmap.png",
+    log:
+        "logs/compare_models.log"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/compare_models.py"
