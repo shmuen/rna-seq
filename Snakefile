@@ -153,7 +153,8 @@ rule plot_metrics:
 rule compare_models:
     input:
         reports = expand("results/metrics/{model}_report.csv", model=MODEL),
-        bench = expand("benchmarks/train_{model}.txt", model=MODEL)
+        bench = expand("benchmarks/train_{model}.txt", model=MODEL),
+        roc = expand("results/metrics/{model}_roc.csv", model=MODEL)
     output:
         summary = "results/comparison/model_comparison.csv",
         plot = "results/comparison/barplot.png",
