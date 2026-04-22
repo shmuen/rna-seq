@@ -1,46 +1,42 @@
 import pandas as pd
 import numpy as np
-import json
+import json, sys
 from sklearn.preprocessing import LabelEncoder
 
 #import of data
-rna_seq = pd.read_csv(snakemake.input.data)
-labels = pd.read_csv(snakemake.input.labels)
+rna_seq = pd.read_csv(snakemake.input.data, index_col = 0)
+labels = pd.read_csv(snakemake.input.labels, index_col = 0)
 
-df = pd.merge(rna_seq, labels, on="Unnamed: 0")
+df = rna_seq.join(labels)
 
-#first inspection of data
-print(f'Shape: {df.shape}')
-# print(f'Label: {labels.columns.tolist()}')
-
-#check for missing values
-print(f'Missing: {df.isnull().sum().sum()}')
-
-#check for duplicates
-print(f'Duplicates: {df.duplicated().sum()}')
+#first inspection of data, write to log
+with open(snakemake.log[0], 'w') as log:
+    log.write(f'Shape: {df.shape}\n')
+    #check for missing values
+    log.write(f'Missing: {df.isnull().sum().sum()}\n')
+    #check for duplicates
+    log.write(f'Duplicates: {df.duplicated().sum()}\n')
 
 #encoding labels
 le = LabelEncoder()
-y = le.fit_transform(labels["Class"])
+y = le.fit_transform(labels['Class'])
 
 #save encoding
 mapping = {str(k): int(v) for k, v in zip(le.classes_, le.transform(le.classes_))}
-with open(snakemake.output.label_mapping, "w") as f:
+with open(snakemake.output.label_mapping, 'w') as f:
     json.dump(mapping, f)
 
-#log1p-transformation
-X = df.drop(columns=['Class', 'Unnamed: 0'])
+#log1p-transformation to reduce skewness of RNA-seq data
+X = df.drop(columns=['Class'])
 X_log = np.log1p(X)
 
-#filter for genes with high variance
+#filter for genes with high variance to reduce noise and dimensionality
 variance = X_log.var()
 X_filtered = X_log[variance[variance > variance.median()].index]
-print(f'Filtering leaves {len(X_filtered.columns)} genes')
+with open(snakemake.log[0], 'a') as log:
+    log.write(f'Filtering leaves {len(X_filtered.columns)} genes\n')
 
-#combine X and y for output
-out = X_filtered.copy()
-out['Class'] = y
-
-#save output
-out.to_csv(snakemake.output.data)
+#combine X and y for output and save to file
+X_filtered = pd.concat([X_filtered, pd.Series(y, name='Class', index=X_filtered.index)], axis=1)
+X_filtered.to_csv(snakemake.output.data)
 

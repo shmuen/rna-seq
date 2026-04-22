@@ -1,41 +1,41 @@
 import pandas as pd
 import numpy as np
 import joblib, json
-from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
-#import preprocessed data, parameter, mapping and scaler
-X_train_scaled = pd.read_csv(snakemake.input.X_train_scaled)
-X_test_scaled = pd.read_csv(snakemake.input.X_test_scaled)
-y = pd.read_csv(snakemake.input.y_train)['Class']
+#import preprocessed data, PCA parameters and label mapping
+X_train_scaled = pd.read_csv(snakemake.input.X_train_scaled, index_col=0)
+X_test_scaled = pd.read_csv(snakemake.input.X_test_scaled, index_col=0)
+y = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
 n = snakemake.params.n_components
 
 with open(snakemake.input.mapping) as f:
     label_mapping = json.load(f)
-
+#inverse mapping to get class names from encoded labels
 inverse_mapping = {v: k for k, v in label_mapping.items()}
 
-#PCA on training data and save PCA
+#fit PCA on training data only, save PCA and transform train and test data
 pca = PCA(n_components=n)
 X_train_pca = pca.fit_transform(X_train_scaled)
 joblib.dump(pca, snakemake.output.pca)
-
-#transform scaled test data
 X_test_pca = pca.transform(X_test_scaled)
 
 #save compoments
 components_cols = [f'PC{i+1}' for i in range(n)]
-pd.DataFrame(X_train_pca, columns=components_cols).to_csv(snakemake.output.X_train_pca, index = False)
-pd.DataFrame(X_test_pca, columns=components_cols).to_csv(snakemake.output.X_test_pca, index = False)
+pd.DataFrame(X_train_pca, columns=components_cols, index=X_train_scaled.index).to_csv(snakemake.output.X_train_pca)
+pd.DataFrame(X_test_pca, columns=components_cols, index=X_test_scaled.index).to_csv(snakemake.output.X_test_pca)
 
-#full PCA
+#fit full PCA (all compoments) to determine variance explained
 pca_full = PCA()
 pca_full.fit(X_train_scaled)
 
-#get amount of compoments to reach 80% variance
+#get and log number of compoments to reach 80% variance
 cumsum = np.cumsum(pca_full.explained_variance_ratio_)
 n_components_80 = np.argmax(cumsum >= 0.8) + 1
-print(f'components for 80% variance: {n_components_80}')
+with open(snakemake.log[0], 'w') as log:
+    log.write(f'components for 80% variance: {n_components_80}\n')
+    log.write(f'Variance explained by {n} components: {cumsum[n-1]:.3f}\n')
 
 #visualize PCA and variance
 plt.figure(figsize=(10,8))
@@ -54,14 +54,17 @@ plt.title('PCA - Gene Expression Cancer')
 plt.legend()
 plt.tight_layout()
 plt.savefig(snakemake.output.plot, dpi=150)
+plt.close()
 
 #plot PCA 80% variance
 plt.figure(figsize=(10,8))
 plt.plot(cumsum)
-plt.xlabel("amount components")
-plt.ylabel("cumulutive variance")
+plt.xlabel("Number of components")
+plt.ylabel("Cumulative variance")
 plt.axhline(y=0.8, color ='r', linestyle = '--')
 plt.title('Explained variance')
+plt.tight_layout()
 plt.savefig(snakemake.output.variance_plot, dpi= 150)
+plt.close()
 
 
