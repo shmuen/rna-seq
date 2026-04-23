@@ -20,7 +20,21 @@ for model, bench, roc in zip(snakemake.input.reports, snakemake.input.bench, sna
     rows.append(row)
     
 #create summary dataframe with all models and save to file
-df_summary = pd.concat(rows)
+df_summary = pd.concat(rows).rename(
+    columns={
+        "accuracy": "Accuracy",
+        "macro avg": "Macro F1",
+        "mcc": "MCC",
+        "auc_macro": "Macro AUC"
+    },
+    index={
+        "randomforest": "Random Forest",
+        "svm": "SVM",
+        "logistic_regression": "Logistic Regression",
+        "xgboost": "XGBoost"    
+    }
+)
+
 df_summary.round(3).to_csv(snakemake.output.summary)
 
 #dataframes for plots without kappa and train time
@@ -43,7 +57,8 @@ ax = sns.heatmap(
     annot=True,          
     fmt=".3f",
     cmap="RdYlGn",
-    vmin=0.9, vmax=1.0   
+    vmin=df_summary.drop(columns=["train time"]).min().min() * 0.99,
+    vmax=1.0   
 )
 
 ax.xaxis.tick_top()
@@ -51,15 +66,3 @@ ax.xaxis.set_label_position('top')
 plt.tight_layout()
 plt.savefig(snakemake.output.heat, dpi = 150)
 plt.close()
-
-a=["results/metrics/randomforest_report.csv",
-"results/metrics/svm_report.csv",
-"results/metrics/logistic_regression_report.csv",
-"results/metrics/xgboost_report.csv"]
-
-rows = []
-for model in a:
-    tmp = pd.read_csv(model, index_col =0)
-    row = tmp.loc[metrics,["f1-score"]].T
-    row.index = [Path(model).stem.split("_")[0]]
-    rows.append(row)

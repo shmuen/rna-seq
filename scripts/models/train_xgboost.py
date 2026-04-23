@@ -1,10 +1,15 @@
 import joblib
 import pandas as pd
 from xgboost import XGBClassifier
+from sklearn.preprocessing import LabelEncoder
 
 #load data
 X_train_pca = pd.read_csv(snakemake.input.X_train_pca, index_col=0)
 y_train = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
+
+#encode labels für xgboost
+le = LabelEncoder()
+y_train_enc = le.fit_transform(y_train)
 
 #define model and train
 xgb = XGBClassifier(
@@ -12,10 +17,10 @@ xgb = XGBClassifier(
     eval_metric = 'mlogloss', 
     random_state = snakemake.params.seed,
     n_jobs = snakemake.threads)
-xgb.fit(X_train_pca, y_train)
+xgb.fit(X_train_pca, y_train_enc)
 
-#save model
-joblib.dump(xgb, snakemake.output.model)
+#save model and label encoder
+joblib.dump((xgb, le), snakemake.output.model)
 
 with open(snakemake.log[0], 'w') as log:
     log.write(f'Number of trees: {xgb.n_estimators}\n')

@@ -11,7 +11,15 @@ from sklearn.metrics import (
 y_test = pd.read_csv(snakemake.input.y_test, index_col=0)['Class']
 y_pred = pd.read_csv(snakemake.input.y_pred, index_col=0)['y_pred']
 y_proba = pd.read_csv(snakemake.input.y_proba, index_col=0).values # numpy array for sklearn
-model = joblib.load(snakemake.input.model)
+
+#load model; if model is encoded with label encoder, tuple is extracted
+loaded = joblib.load(snakemake.input.model)
+if isinstance(loaded, tuple):
+    model, le = loaded
+    classes = le.classes_
+else:
+    model = loaded
+    classes = model.classes_
 
 #create and save report of metrics
 report = pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).T
@@ -32,16 +40,16 @@ report.to_csv(snakemake.output.report)
 
 #calculate confusion matrix
 cm =confusion_matrix(y_test, y_pred)
-cm_df = pd.DataFrame(cm, index=model.classes_, columns=model.classes_)
+cm_df = pd.DataFrame(cm, index=classes, columns=classes)
 cm_df.to_csv(snakemake.output.cm)
 
 #roc 
 #bin y_test data
-y_test_bin = label_binarize(y_test, classes = model.classes_)
+y_test_bin = label_binarize(y_test, classes = classes)
 
 #ROC curve: One-vs-Rest for each class
 roc_data = []
-for cls_idx, cls in enumerate(model.classes_):
+for cls_idx, cls in enumerate(classes):
     fpr, tpr, _ = roc_curve(y_test_bin[:,cls_idx], y_proba[:,cls_idx])
     auc_score = auc(fpr, tpr)
     for f, t in zip(fpr, tpr):
@@ -53,7 +61,7 @@ roc_df.to_csv(snakemake.output.roc, index = False)
 
 #calibration curve per class (OvR)
 rows = []
-for cls_idx, cls in enumerate(model.classes_):
+for cls_idx, cls in enumerate(classes):
     frac_pos, mean_pred = calibration_curve(
         (y_test == cls).astype(int),
         y_proba[:, cls_idx],

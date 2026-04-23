@@ -6,9 +6,10 @@ rule all:
     input:
         expand("results/plots/{model}_cm_plot.png", model = MODEL),
         expand("results/plots/{model}_roc_plot.png", model = MODEL),
-        expand("results/plots/{model}_cm_plot.png", model = MODEL),
-        expand("results/plots/{model}_roc_plot.png", model = MODEL),
-        expand("results/plots/{model}_calibration_curve.png", model = MODEL)
+        expand("results/plots/{model}_calibration_curve.png", model = MODEL),
+        expand("results/comparison/model_comparison.csv"),
+        expand("results/comparison/barplot.png"),
+        expand("results/comparison/heatmap.png")
  
 
 rule preprocess:
