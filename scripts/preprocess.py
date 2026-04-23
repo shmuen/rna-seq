@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
-import json, sys
-from sklearn.preprocessing import LabelEncoder
 
 #import of data
 rna_seq = pd.read_csv(snakemake.input.data, index_col = 0)
 labels = pd.read_csv(snakemake.input.labels, index_col = 0)
-
 df = rna_seq.join(labels)
 
 #first inspection of data, write to log
@@ -16,15 +13,6 @@ with open(snakemake.log[0], 'w') as log:
     log.write(f'Missing: {df.isnull().sum().sum()}\n')
     #check for duplicates
     log.write(f'Duplicates: {df.duplicated().sum()}\n')
-
-#encoding labels
-le = LabelEncoder()
-y = le.fit_transform(labels['Class'])
-
-#save encoding
-mapping = {str(k): int(v) for k, v in zip(le.classes_, le.transform(le.classes_))}
-with open(snakemake.output.label_mapping, 'w') as f:
-    json.dump(mapping, f)
 
 #log1p-transformation to reduce skewness of RNA-seq data
 X = df.drop(columns=['Class'])
@@ -37,6 +25,6 @@ with open(snakemake.log[0], 'a') as log:
     log.write(f'Filtering leaves {len(X_filtered.columns)} genes\n')
 
 #combine X and y for output and save to file
-X_filtered = pd.concat([X_filtered, pd.Series(y, name='Class', index=X_filtered.index)], axis=1)
+X_filtered = pd.concat([X_filtered, labels['Class']], axis=1)  #pd.Series(y, name='Class', index=X_filtered.index)], axis=1)
 X_filtered.to_csv(snakemake.output.data)
 

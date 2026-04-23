@@ -10,11 +10,6 @@ X_test_scaled = pd.read_csv(snakemake.input.X_test_scaled, index_col=0)
 y = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
 n = snakemake.params.n_components
 
-with open(snakemake.input.mapping) as f:
-    label_mapping = json.load(f)
-#inverse mapping to get class names from encoded labels
-inverse_mapping = {v: k for k, v in label_mapping.items()}
-
 #fit PCA on training data only, save PCA and transform train and test data
 pca = PCA(n_components=n)
 X_train_pca = pca.fit_transform(X_train_scaled)
@@ -44,7 +39,7 @@ for label in y.unique():
     plt.scatter(
         X_train_pca[mask, 0],
         X_train_pca[mask, 1],
-        label = inverse_mapping[label],
+        label = label,
         alpha = 0.6
     )
 
