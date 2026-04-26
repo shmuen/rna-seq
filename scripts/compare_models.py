@@ -44,8 +44,11 @@ df_barplot = df_summary.drop(columns = ["kappa", "train time"])
 df_long = df_barplot.reset_index(names="model").melt(id_vars="model", var_name="metric", value_name="value")
 
 #plot and save grouped barplot with models and metrics
-sns.barplot(data=df_long, x="model", y="value", hue="metric", gap=.1)
-plt.ylim([0,1.35])
+ax = sns.barplot(data=df_long, x="model", y="value", hue="metric", gap=.1)
+plt.ylim([0,1.45])
+plt.xlabel("Model")
+plt.ylabel("Value")
+ax.legend(title="Metric")
 plt.tight_layout()
 plt.savefig(snakemake.output.plot, dpi= 150)
 plt.close()
