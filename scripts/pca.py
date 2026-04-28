@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import joblib
+import joblib, json
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
@@ -9,6 +9,11 @@ X_train_scaled = pd.read_csv(snakemake.input.X_train_scaled, index_col=0)
 X_test_scaled = pd.read_csv(snakemake.input.X_test_scaled, index_col=0)
 y = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
 n = snakemake.params.n_components
+
+#load mapping and create inv_map for PCA plot
+with open(snakemake.input.label_mapping) as f:
+    label_mapping = json.load(f)
+inv_map = {int(k): v for k, v in label_mapping.items()}
 
 #fit PCA on training data only, save PCA and transform train and test data
 pca = PCA(n_components=n)
@@ -39,7 +44,7 @@ for label in y.unique():
     plt.scatter(
         X_train_pca[mask, 0],
         X_train_pca[mask, 1],
-        label = label,
+        label = inv_map[int(label)],
         alpha = 0.6
     )
 

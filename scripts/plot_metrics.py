@@ -1,13 +1,21 @@
 import pandas as pd
 import numpy as np
+import json
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
 
 #load y_test, y_proba, cm and roc data
 cm_df = pd.read_csv(snakemake.input.cm, index_col=0)
-class_names = cm_df.columns.tolist()
 cm = cm_df.values
 roc = pd.read_csv(snakemake.input.roc)
+
+#load mapping and decode
+with open(snakemake.input.label_mapping) as f:
+    label_mapping = json.load(f)
+inv_map = {int(k): v for k, v in label_mapping.items()}
+
+classes = cm_df.columns.astype(int).to_list()
+class_names = [inv_map[int(c)] for c in classes]
 
 #Confusion matrix plot
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
@@ -21,7 +29,9 @@ plt.figure()
 for cls in roc["class"].unique():
     subset = roc[roc["class"] == cls]
     auc_score = subset["auc"].iloc[0]
-    plt.plot(subset["fpr"], subset["tpr"], label=f"{cls} (AUC = {auc_score:.3f})")
+    plt.plot(subset["fpr"], 
+             subset["tpr"], 
+             label=f"{inv_map[int(cls)]} (AUC = {auc_score:.3f})")
 
 plt.plot([0, 1], [0, 1], linestyle="--")
 plt.xlabel("False Positive Rate")
@@ -49,7 +59,7 @@ for cls, color in zip(classes, colors):
     ax1.plot(
         sub["mean_predicted_value"],
         sub["fraction_of_positives"],
-        marker="o", label=cls, color=color
+        marker="o", label=inv_map[int(cls)], color=color
     )
 
 ax1.set_xlabel("mean predicted value")

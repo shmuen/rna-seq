@@ -11,13 +11,13 @@ rule all:
         expand("results/comparison/barplot.png"),
         expand("results/comparison/heatmap.png")
  
-
 rule preprocess:
     input:
         data = config["data_path"],
         labels = config["labels_path"]
     output:
-        data = "results/preprocessed/data_clean.csv"
+        data = "results/preprocessed/data_clean.csv",
+        label_mapping = "results/preprocessed/label_mapping.json"
     log:
         "logs/preprocess.log"
     benchmark:
@@ -64,19 +64,20 @@ rule pca:
     input:
         X_train_scaled = "results/scale/X_train_scaled.csv",
         X_test_scaled = "results/scale/X_test_scaled.csv",
-        y_train = "results/split/y_train.csv"
+        y_train = "results/split/y_train.csv",
+        label_mapping = "results/preprocessed/label_mapping.json"
     output:
         X_train_pca = "results/pca/X_train_pca.csv",
         X_test_pca = "results/pca/X_test_pca.csv",
         pca = "results/pca/pca.pkl",
         plot = "results/pca/pca_plot.png",
         variance_plot = "results/pca/variance_plot.png"
+    params:
+        n_components = config["pca"]["n_components"]
     log:
         "logs/pca.log"
     benchmark:
         "benchmarks/pca.txt" 
-    params:
-        n_components = config["pca"]["n_components"]
     conda:
         "envs/ml.yaml"
     script:
@@ -139,7 +140,8 @@ rule plot_metrics:
         cm = "results/metrics/{model}_cm.csv",
         roc = "results/metrics/{model}_roc.csv",
         y_proba = "results/prediction/y_proba_{model}.csv",
-        calibration = "results/metrics/{model}_calibration.csv"
+        calibration = "results/metrics/{model}_calibration.csv",
+        label_mapping = "results/preprocessed/label_mapping.json"
     output:
         cm_plot = "results/plots/{model}_cm_plot.png",
         roc_plot = "results/plots/{model}_roc_plot.png",
