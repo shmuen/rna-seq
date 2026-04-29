@@ -1,18 +1,20 @@
-import joblib
+import joblib, json
 import pandas as pd
 from xgboost import XGBClassifier
-from sklearn.preprocessing import LabelEncoder
 
-#load data
+#load data and parameters
 X_train_pca = pd.read_csv(snakemake.input.X_train_pca, index_col=0)
 y_train = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
+with open(snakemake.input.best_params) as f:
+    best_params = json.load(f)
 
 #define model and train
 xgb = XGBClassifier(
-    n_estimators = 200, 
+    **best_params, 
     eval_metric = 'mlogloss', 
     random_state = snakemake.params.seed,
-    n_jobs = snakemake.threads)
+    n_jobs = snakemake.threads
+    )
 xgb.fit(X_train_pca, y_train)
 
 #save model

@@ -83,10 +83,33 @@ rule pca:
     script:
         "scripts/pca.py"
 
+rule tune_models:
+    input:
+        X_train = "results/split/X_train.csv",
+        y_train = "results/split/y_train.csv"
+    output:
+        best_params = "results/tune/best_params_{model}.json"
+    params:
+        tune = config["tuning"]["enabled"],
+        param_grid = lambda wildcards: config["tuning"]["param_grids"][wildcards.model],
+        default_grid = lambda wildcards: config["tuning"]["default_grids"][wildcards.model],
+        n_components = config["pca"]["n_components"],
+        seed = config["seed"]
+    threads: 4
+    log:
+        "logs/tune_{model}.log"
+    benchmark:
+        "benchmarks/tune_{model}.txt"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/tune_models.py"
+
 rule train_models:
     input:
         X_train_pca = "results/pca/X_train_pca.csv",
-        y_train = "results/split/y_train.csv"
+        y_train = "results/split/y_train.csv",
+        best_params = "results/tune/best_params_{model}.json"
     output:
         model = "results/models/{model}.pkl"
     params:

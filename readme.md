@@ -5,6 +5,7 @@ This project demonstrates a fully reproducible RNA-seq analysis pipeline using S
 - automated preprocessing, PCA and model training pipeline
 - training and evaluation of multiple machine learning models
 - automated and reproducible pipeline execution
+- optional hyperparameter tuning via GridSearchCV
 
 ## Background
 Cancer is one of the leading causes of death worldwide, with 10 million deaths in 2022 according to the WHO. Among the most common types of cancer are lung, breast, colon and rectum and prostate cancers [1]. 
@@ -29,11 +30,11 @@ This workflow implements a fully reproducible pipeline using Snakemake as workfl
 ```
 rna-seq/
 ├── Snakefile
-├── config/ # pipeline configuration
-├── data/   # raw input data (not tracked)
-├── envs/   # conda environments
-├── scripts/ # Python scripts per rule
-├── logs/ #Snakemake logs (not tracked)
+├── config/     # pipeline configuration
+├── data/       # raw input data (not tracked)
+├── envs/       # conda environments
+├── scripts/    # Python scripts per rule
+├── logs/       # Snakemake logs (not tracked)
 ├── benchmarks/ # Snakemake benchmarks (not tracked)
 └── results/    # all pipeline outputs (not tracked)
 ```
@@ -58,13 +59,12 @@ The models are compared across the following metrics using a One-vs-Rest strateg
 ![DAG](plots/rulegraph.png)
 
 ## Results
-All models performed well, with an accuracy of 0.98 or above and Macro AUC scores of 1 across all cancer types. The high performance across all models suggests that the five cancer types are well-separable in gene expression space, which is consistent with the clear cluster structure visible in the PCA plot.
-Logistic Regression achieved perfect scores across all metrics, which likely reflects the strong linear separability of the PCA-reduced data rather than overfitting given the small number of components. SVM performed second best, while Random Forest and XGBoost showed comparable but slightly lower performance. As this is a single dataset without external validation, results should be interpreted with caution.
+After hyperparameter tuning, all models performed well, with an accuracy of 0.97 or above and Macro AUC scores of 0.998 or above across all models. SVM achieved perfect scores across all metrics, while Logistic Regression and XGBoost showed slightly lower but strong performance. Random Forest performed comparably but slightly below the other models. The high performance across all models suggests that the five cancer types are well-separable in gene expression space, which is consistent with the clear cluster structure visible in the PCA plot. The strong scores likely reflect the separability of the PCA-reduced data rather than overfitting, given the small number of components. As this is a single dataset without external validation, results should be interpreted with caution.
 
 ### PCA of Gene Expression Profiles
 ![PCA](plots/pca_plot.png)
 
-Despite PC1 and PC2 explaining only 11.6% and 8.7% of the total variance respectively, the five cancer types form clearly distinct clusters, indicating strong biological signal in the data.
+Despite PC1 and PC2 explaining only 10.0% and 8.1% of the total variance respectively, the five cancer types form clearly distinct clusters, indicating strong biological signal in the data.
 
 ### Model Performance Comparison
 ![Heatmap](plots/heatmap.png)
@@ -72,8 +72,7 @@ Despite PC1 and PC2 explaining only 11.6% and 8.7% of the total variance respect
 ## Limitations
 - **Single dataset without external validation:** All models are trained and evaluated on one dataset. Performance may not generalise to other cohorts or sequencing protocols.
 - **Simplified problem setting:** The selected cancer types are known to be well-separated in gene expression space, making this a relatively easy classification task compared to real-world scenarios.
-- **No hyperparameter tuning:** Models were trained with default or minimal 
-  parameter settings, leaving room for further optimisation.
+- **Hyperparameter tuning:** Scaler and PCA were fitted on the entire training set prior to cross-validation, which introduces a small optimistic bias in hyperparameter tuning.
 - **PCA information loss:** Dimensionality reduction to 50 components retains only a fraction of total variance, potentially discarding relevant signal.
 
 ## Usage
@@ -90,6 +89,8 @@ The workflow manages all dependencies automatically via conda. Run with:
 snakemake --cores N --use-conda
 ```
 Replace `N` with the number of cores to use.
+
+Hyperparameter tuning is optional and has to be enabled in the config file.
 
 ## References
 [1] Ferlay J, Ervik M, Lam F, Colombet M, Mery L, Piñeros M, et al. Global Cancer Observatory: Cancer Today. Lyon: International Agency for Research on Cancer; 2022 (https://gco.iarc.fr/today, accessed April 2026). 
