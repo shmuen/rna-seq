@@ -80,7 +80,7 @@ Despite PC1 and PC2 explaining only 10.0% and 8.1% of the total variance respect
 
 Clone the repository and navigate to the project directory:
 ```bash
-git clone https://github.com/xxx/rna-seq
+git clone https://github.com/shmuen/rna-seq
 cd rna-seq
 ```
 
