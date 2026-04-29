@@ -3,16 +3,11 @@ import joblib
 
 #import PCA-transformed test data and trained model
 X_test_pca = pd.read_csv(snakemake.input.X_test_pca, index_col=0)
-#check if model contains label encoder and transform
-loaded = joblib.load(snakemake.input.model)
-if isinstance(loaded, tuple):
-    model, le = loaded
-    classes = le.classes_
-    y_pred = le.inverse_transform(model.predict(X_test_pca))
-else:
-    model = loaded
-    y_pred = model.predict(X_test_pca)
-    classes = model.classes_
+
+#load model and predict y
+model = joblib.load(snakemake.input.model)
+y_pred = model.predict(X_test_pca)
+classes = model.classes_
 
 #calculate class prediction and probability for test data 
 y_proba = model.predict_proba(X_test_pca)

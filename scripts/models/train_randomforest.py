@@ -1,14 +1,16 @@
-import joblib
+import joblib, json
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-#load data
+#load data and parameters
 X_train_pca = pd.read_csv(snakemake.input.X_train_pca, index_col=0)
 y_train = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
+with open(snakemake.input.best_params) as f:
+    best_params = json.load(f)
 
 #define model and train
 rf = RandomForestClassifier(
-    n_estimators=200, 
+    **best_params, 
     random_state=snakemake.params.seed, 
     n_jobs = snakemake.threads
     )

@@ -12,14 +12,10 @@ y_test = pd.read_csv(snakemake.input.y_test, index_col=0)['Class']
 y_pred = pd.read_csv(snakemake.input.y_pred, index_col=0)['y_pred']
 y_proba = pd.read_csv(snakemake.input.y_proba, index_col=0).values # numpy array for sklearn
 
-#load model; if model is encoded with label encoder, tuple is extracted
+#load model
 loaded = joblib.load(snakemake.input.model)
-if isinstance(loaded, tuple):
-    model, le = loaded
-    classes = le.classes_
-else:
-    model = loaded
-    classes = model.classes_
+model = loaded
+classes = model.classes_
 
 #create and save report of metrics
 report = pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).T
