@@ -29,13 +29,7 @@ with open(snakemake.output.label_mapping, 'w') as f:
 X = df.drop(columns=['Class'])
 X_log = np.log1p(X)
 
-#filter for genes with high variance to reduce noise and dimensionality
-variance = X_log.var()
-X_filtered = X_log[variance[variance > variance.median()].index]
-with open(snakemake.log[0], 'a') as log:
-    log.write(f'Filtering leaves {len(X_filtered.columns)} genes\n')
-
 #combine X and y for output and save to file
-X_filtered = pd.concat([X_filtered, df['Class']], axis=1) 
-X_filtered.to_csv(snakemake.output.data)
+X_log = pd.concat([X_log, df['Class']], axis=1) 
+X_log.to_csv(snakemake.output.data)
 
