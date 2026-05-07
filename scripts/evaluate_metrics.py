@@ -13,8 +13,7 @@ y_pred = pd.read_csv(snakemake.input.y_pred, index_col=0)['y_pred']
 y_proba = pd.read_csv(snakemake.input.y_proba, index_col=0).values # numpy array for sklearn
 
 #load model
-loaded = joblib.load(snakemake.input.model)
-model = loaded
+model = joblib.load(snakemake.input.model)
 classes = model.classes_
 
 #create and save report of metrics

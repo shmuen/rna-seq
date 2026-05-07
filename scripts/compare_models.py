@@ -6,9 +6,17 @@ from pathlib import Path
 #list with names of metrics to compare
 metrics = ["accuracy", "macro avg", "mcc", "kappa"]
 
+#get nested_cv evaluation if exists
+nested_cv_files = snakemake.input.get("nested_cv", [])
+
 #iterate over all models, get metrics, the time benchmark and macro AUC
 rows = []
-for model, bench, roc in zip(snakemake.input.reports, snakemake.input.bench, snakemake.input.roc):
+for model, bench, roc, ncv in zip(
+    snakemake.input.reports, 
+    snakemake.input.bench, 
+    snakemake.input.roc,
+    nested_cv_files or [None] * len(snakemake.input.reports)
+    ):
     model_name = Path(model).stem.replace("_report", "")
     tmp = pd.read_csv(model, index_col =0)
     row = tmp.loc[metrics,["f1-score"]].T
@@ -17,15 +25,19 @@ for model, bench, roc in zip(snakemake.input.reports, snakemake.input.bench, sna
     row["train time"] = pd.read_csv(bench,sep="\t")["s"].item()
     #compute macro AUC by averaging AUC across classes
     row["auc_macro"] = pd.read_csv(roc).groupby("class")["auc"].first().mean()
+    if ncv:
+        ncv_df = pd.read_csv(ncv)
+        row["nested_cv"] = ncv_df["mean"].item()
     rows.append(row)
     
 #create summary dataframe with all models and save to file
 df_summary = pd.concat(rows).rename(
     columns={
         "accuracy": "Accuracy",
-        "macro avg": "Macro F1",
+        "macro avg": "F1",
         "mcc": "MCC",
-        "auc_macro": "Macro AUC"
+        "auc_macro": "AUC",
+        "nested_cv": "N. CV F1"
     },
     index={
         "randomforest": "Random Forest",

@@ -2,4 +2,4 @@ data/
 .snakemake
 results/
 logs/
-benchmarks
+benchmarks/
