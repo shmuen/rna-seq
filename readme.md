@@ -1,11 +1,14 @@
 # Cancer Type Classification from Gene Expression
-
+![Snakemake](https://img.shields.io/badge/snakemake-≥9.11-brightgreen)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
 ## Overview
 This project demonstrates a fully reproducible RNA-seq analysis pipeline using Snakemake for cancer type classification based on gene expression data.
 - automated preprocessing, PCA and model training pipeline
 - training and evaluation of multiple machine learning models
-- automated and reproducible pipeline execution
 - optional hyperparameter tuning via GridSearchCV
+- optional nested cross-validation for unbiased model evaluation
+- automated and reproducible pipeline execution
 
 ## Background
 Cancer is one of the leading causes of death worldwide, with 10 million deaths in 2022 according to the WHO. Among the most common types of cancer are lung, breast, colon and rectum and prostate cancers [1]. 
@@ -55,11 +58,14 @@ The models are compared across the following metrics using a One-vs-Rest strateg
 - Cohen's Kappa
 - Macro Area under the Curve (AUC)
 
+### Nested Cross-Validation
+In addition to the standard train/test evaluation, the pipeline optionally supports nested cross-validation (nested CV) for a more robust and less biased estimate of generalisation performance. Nested CV uses an outer loop to estimate test performance and an inner loop for hyperparameter tuning, preventing information leakage between model selection and evaluation. This is particularly useful when comparing models on a limited dataset, as it provides a more realistic estimate of how well each model would generalise to unseen data. Nested CV can be enabled in the config file via `run_nested_cv: true`.
+
 ### Rule graph of Snakemake workflow
 ![DAG](plots/rulegraph.png)
 
 ## Results
-After hyperparameter tuning, all models performed well, with an accuracy of 0.97 or above and Macro AUC scores of 0.998 or above across all models. SVM achieved perfect scores across all metrics, while Logistic Regression and XGBoost showed slightly lower but strong performance. Random Forest performed comparably but slightly below the other models. The high performance across all models suggests that the five cancer types are well-separable in gene expression space, which is consistent with the clear cluster structure visible in the PCA plot. The strong scores likely reflect the separability of the PCA-reduced data rather than overfitting, given the small number of components. As this is a single dataset without external validation, results should be interpreted with caution.
+After hyperparameter tuning, all models achieved strong performance across all metrics. Logistic Regression achieved the highest performance on the hold-out test set (accuracy 0.994, Macro F1 0.990), closely followed by SVM (accuracy 0.981). Random Forest and XGBoost performed slightly below, though all models exceeded 0.96 across all metrics. Nested cross-validation F1 scores (see [Nested Cross-Validation](#nested-cross-validation)) are closely aligned with hold-out performance across all models, suggesting that the results are robust and not an artefact of a favourable train/test split. The high performance across all models reflects the strong separability of the five cancer types in gene expression space, consistent with the distinct cluster structure visible in the PCA plot. As this is a single dataset without external validation, results should be interpreted with caution.
 
 ### PCA of Gene Expression Profiles
 ![PCA](plots/pca_plot.png)
@@ -80,7 +86,7 @@ Despite PC1 and PC2 explaining only 10.0% and 8.1% of the total variance respect
 
 Clone the repository and navigate to the project directory:
 ```bash
-git clone https://github.com/shmuen/rna-seq
+git clone https://github.com/xx/rna-seq
 cd rna-seq
 ```
 
@@ -90,7 +96,14 @@ snakemake --cores N --use-conda
 ```
 Replace `N` with the number of cores to use.
 
-Hyperparameter tuning is optional and has to be enabled in the config file.
+Hyperparameter tuning as well as nested cross-validation is optional and can be enabled independently in the config file:
+
+```yaml
+tuning:
+  enabled: true   # enable hyperparameter tuning via GridSearchCV
+
+run_nested_cv: true  # enable nested cross-validation for unbiased performance estimates
+```
 
 ## References
 [1] Ferlay J, Ervik M, Lam F, Colombet M, Mery L, Piñeros M, et al. Global Cancer Observatory: Cancer Today. Lyon: International Agency for Research on Cancer; 2022 (https://gco.iarc.fr/today, accessed April 2026). 
