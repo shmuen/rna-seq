@@ -158,6 +158,27 @@ rule evaluate_metrics:
     script:
         "scripts/evaluate_metrics.py"
 
+rule nested_cv:
+    input:
+        X_train = "results/split/X_train.csv",
+        y_train = "results/split/y_train.csv"
+    output:
+        nested_cv_score = "results/metrics/{model}_nested_cv.csv"
+    params:
+        tune = config["tuning"]["enabled"],
+        param_grid = lambda wildcards: config["tuning"]["param_grids"][wildcards.model],
+        n_components = config["pca"]["n_components"],
+        seed = config["seed"]
+    threads: 6
+    log:
+        "logs/nested_cv_{model}.log"
+    benchmark:
+        "benchmarks/nested_cv_{model}.txt"
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/nested_cv.py"
+
 rule plot_metrics:
     input:
         cm = "results/metrics/{model}_cm.csv",
@@ -180,7 +201,9 @@ rule compare_models:
     input:
         reports = expand("results/metrics/{model}_report.csv", model=MODEL),
         bench = expand("benchmarks/train_{model}.txt", model=MODEL),
-        roc = expand("results/metrics/{model}_roc.csv", model=MODEL)
+        roc = expand("results/metrics/{model}_roc.csv", model=MODEL),
+        nested_cv = expand("results/metrics/{model}_nested_cv.csv", model=MODEL) \
+            if config.get("run_nested_cv", False) else [] 
     output:
         summary = "results/comparison/model_comparison.csv",
         plot = "results/comparison/barplot.png",

@@ -7,7 +7,7 @@ split:
 seed: 42
 model: ["randomforest", "svm", "logistic_regression", "xgboost"]
 tuning:
-  enabled: true
+  enabled: false
   param_grids:
     randomforest:
       n_estimators: [100, 200, 300]
@@ -22,10 +22,10 @@ tuning:
       max_iter: [1000]
       kernel: ["linear", "rbf"]
     xgboost:
-      n_estimators: [100, 200, 300]
-      max_depth: [3, 5, 10]
+      n_estimators: [50, 100]
+      max_depth: [3, 5]
       learning_rate: [0.01, 0.1]
-      subsample: [0.8, 1]
+      subsample: [0.8]
   default_grids:
     randomforest:
       n_estimators: 200
@@ -35,4 +35,5 @@ tuning:
       kernel: "rbf"
     xgboost:
       n_estimators: 200
+run_nested_cv: true
 
