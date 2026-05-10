@@ -7,9 +7,9 @@ rule all:
         expand("results/plots/{model}_cm_plot.png", model = MODEL),
         expand("results/plots/{model}_roc_plot.png", model = MODEL),
         expand("results/plots/{model}_calibration_curve.png", model = MODEL),
-        expand("results/comparison/model_comparison.csv"),
-        expand("results/comparison/barplot.png"),
-        expand("results/comparison/heatmap.png")
+        "results/comparison/model_comparison.csv",
+        "results/comparison/barplot.png",
+        "results/comparison/heatmap.png"
  
 rule preprocess:
     input:
@@ -124,7 +124,7 @@ rule train_models:
     conda:
         "envs/ml.yaml"
     script:
-        "scripts/train_model.py"
+        "scripts/models/train_model.py"
 
 rule predict:
     input:

@@ -5,13 +5,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-#load data and parameters
+# load data and parameters
 X_train_pca = pd.read_csv(snakemake.input.X_train_pca, index_col=0)
 y_train = pd.read_csv(snakemake.input.y_train, index_col=0)['Class']
 with open(snakemake.input.best_params) as f:
     best_params = json.load(f)
 best_params["random_state"] = snakemake.params.seed
 
+# supported model classes
 MODELS = {
     "randomforest": RandomForestClassifier,
     "logistic_regression": LogisticRegression,
@@ -19,8 +20,7 @@ MODELS = {
     "xgboost": XGBClassifier
 }
 
-# define current model and train with best_params either from tuning or 
-# predefined parameters if tuning is disabled
+# instantiate and train model
 model_name = snakemake.wildcards.model
 ModelClass = MODELS[model_name]
 
@@ -28,10 +28,10 @@ model = ModelClass(**best_params)
 
 model.fit(X_train_pca, y_train)
 
-#save model
+# save model
 joblib.dump(model, snakemake.output.model)
 
-#create log with individual output per model
+# create log with individual output per model
 with open(snakemake.log[0], 'w') as log:
     log.write(f'Training samples: {X_train_pca.shape[0]}\n')
     log.write(f'Features: {X_train_pca.shape[1]}\n')
