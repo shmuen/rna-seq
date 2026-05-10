@@ -124,7 +124,7 @@ rule train_models:
     conda:
         "envs/ml.yaml"
     script:
-        "scripts/models/train_{wildcards.model}.py"
+        "scripts/train_model.py"
 
 rule predict:
     input:

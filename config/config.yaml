@@ -21,11 +21,13 @@ tuning:
       C: [0.01, 0.1, 1, 10]
       max_iter: [1000]
       kernel: ["linear", "rbf"]
+      probability: [true]
     xgboost:
       n_estimators: [50, 100]
       max_depth: [3, 5]
       learning_rate: [0.01, 0.1]
       subsample: [0.8]
+      eval_metric: ["mlogloss"]
   default_grids:
     randomforest:
       n_estimators: 200
@@ -33,7 +35,9 @@ tuning:
       max_iter: 1000
     svm:
       kernel: "rbf"
+      probability: true
     xgboost:
       n_estimators: 200
+      eval_metric: "mlogloss"
 run_nested_cv: true
 

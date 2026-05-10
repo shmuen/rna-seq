@@ -58,7 +58,7 @@ df_summary = pd.concat(rows).rename(
 df_summary.round(3).to_csv(snakemake.output.summary)
  
 # dataframes for plots without kappa and train time
-df_barplot = df_summary.drop(columns=["kappa", "train time"])
+df_barplot = df_summary.drop(columns=["Kappa", "train time"])
  
 # create long format for grouped barplot
 df_long = df_barplot.reset_index(names="model").melt(id_vars="model", var_name="metric", value_name="value")
