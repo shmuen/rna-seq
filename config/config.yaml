@@ -7,7 +7,7 @@ split:
 seed: 42
 model: ["randomforest", "svm", "logistic_regression", "xgboost"]
 tuning:
-  enabled: false
+  enabled: true
   param_grids:
     randomforest:
       n_estimators: [100, 200, 300]
@@ -39,5 +39,5 @@ tuning:
     xgboost:
       n_estimators: 200
       eval_metric: "mlogloss"
-run_nested_cv: true
+run_nested_cv: false
 
