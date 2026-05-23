@@ -9,6 +9,12 @@ rule all:
         expand("results/plots/{model}_roc_plot.png", model = MODEL),
         expand("results/plots/{model}_calibration_curve.png", model = MODEL),
         expand("results/shap/{model}_summary_plot.png", model = MODEL),
+        expand("results/shap/beeswarm/{model}_{name}_beeswarm.png", model = MODEL,
+            name=CLASS_NAMES 
+        ),
+        expand("results/shap/barplot/{model}_{name}_barplot.png", model = MODEL,
+            name=CLASS_NAMES 
+        ),
         "results/comparison/model_comparison.csv",
         "results/comparison/barplot.png",
         "results/comparison/heatmap.png",
@@ -147,15 +153,10 @@ rule shap_analysis:
         X_train_scaled = "results/scale/X_train_scaled.csv",
         X_test_scaled = "results/scale/X_test_scaled.csv",
         y_train = "results/split/y_train.csv",
-        model_pca ="results/pca/pca.pkl",
         best_params = "results/tune/best_params_{model}.json",
         label_mapping = "results/preprocessed/label_mapping.json"
     output:
-        shap_summary = "results/shap/{model}_summary_plot.png",
-        beeswarm = expand(
-            "results/shap/{{model}}_{name}_beeswarm.png",
-            name=CLASS_NAMES 
-        ),
+        shap_values = "results/shap/{model}_shap_values.npy",
         top_genes = "results/shap/{model}_top_genes.csv"
     params:
         seed = config["seed"]
@@ -168,6 +169,32 @@ rule shap_analysis:
     script:
         "scripts/shap_analysis.py"
     
+rule plot_shap:
+    input:
+        shap_values = "results/shap/{model}_shap_values.npy",
+        X_train_scaled = "results/scale/X_train_scaled.csv",
+        X_test_scaled = "results/scale/X_test_scaled.csv",
+        label_mapping = "results/preprocessed/label_mapping.json"
+    output:
+        shap_summary = "results/shap/{model}_summary_plot.png",
+        beeswarm = expand(
+            "results/shap/beeswarm/{{model}}_{name}_beeswarm.png",
+            name=CLASS_NAMES 
+            ),
+        barplot = expand(
+            "results/shap/barplot/{{model}}_{name}_barplot.png",
+            name = CLASS_NAMES
+            )
+    params:
+        seed = config["seed"]
+    log:
+        "logs/plot_shap_{model}.log"
+    benchmark:
+        "benchmarks/{model}_shap_plot.txt" 
+    conda:
+        "envs/ml.yaml"
+    script:
+        "scripts/plot_shap.py"
 
 rule evaluate_metrics:
     input:

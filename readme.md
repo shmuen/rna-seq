@@ -7,6 +7,7 @@ This project demonstrates a fully reproducible RNA-seq analysis pipeline using S
 - automated preprocessing, PCA and model training pipeline
 - training and evaluation of multiple machine learning models
 - optional hyperparameter tuning via GridSearchCV
+- SHAP-based feature importance for model interpretability
 - optional nested cross-validation for unbiased model evaluation
 - automated and reproducible pipeline execution
 
@@ -61,19 +62,33 @@ The models are compared across the following metrics using a One-vs-Rest strateg
 ### Nested Cross-Validation
 In addition to the standard train/test evaluation, the pipeline optionally supports nested cross-validation (nested CV) for a more robust and less biased estimate of generalisation performance. Nested CV uses an outer loop to estimate test performance and an inner loop for hyperparameter tuning, preventing information leakage between model selection and evaluation. This is particularly useful when comparing models on a limited dataset, as it provides a more realistic estimate of how well each model would generalise to unseen data. Nested CV can be enabled in the config file via `run_nested_cv: true`.
 
+### SHAP Feature Importance
+To improve interpretability, SHAP (SHapley Additive exPlanations) values are computed for each model. The analysis is performed on the original scaled features (without PCA) to preserve gene names. Per-class beeswarm and bar plots highlight the most influential genes for each cancer type.
+**Note:** For SHAP analysis, models are retrained on scaled features 
+without PCA to ensure SHAP values map directly to genes rather than principal components.
+
 ### Rule graph of Snakemake workflow
 ![DAG](plots/rulegraph.png)
 
 ## Results
-After hyperparameter tuning, all models achieved strong performance across all metrics. Logistic Regression achieved the highest performance on the hold-out test set (accuracy 0.994, Macro F1 0.990), closely followed by SVM (accuracy 0.981). Random Forest and XGBoost performed slightly below, though all models exceeded 0.96 across all metrics. Nested cross-validation F1 scores (see [Nested Cross-Validation](#nested-cross-validation)) are closely aligned with hold-out performance across all models, suggesting that the results are robust and not an artefact of a favourable train/test split. The high performance across all models reflects the strong separability of the five cancer types in gene expression space, consistent with the distinct cluster structure visible in the PCA plot. As this is a single dataset without external validation, results should be interpreted with caution.
 
 ### PCA of Gene Expression Profiles
-![PCA](plots/pca_plot.png)
-
 Despite PC1 and PC2 explaining only 10.0% and 8.1% of the total variance respectively, the five cancer types form clearly distinct clusters, indicating strong biological signal in the data.
 
+![PCA](plots/pca_plot.png)
+
 ### Model Performance Comparison
+After hyperparameter tuning, all models achieved strong performance across all metrics. Logistic Regression achieved the highest performance on the hold-out test set (accuracy 0.994, Macro F1 0.990), closely followed by SVM (accuracy 0.981). Random Forest and XGBoost performed slightly below, though all models exceeded 0.96 across all metrics. Nested cross-validation F1 scores (see [Nested Cross-Validation](#nested-cross-validation)) are closely aligned with hold-out performance across all models, suggesting that the results are robust and not an artefact of a favourable train/test split. The high performance across all models reflects the strong separability of the five cancer types in gene expression space, consistent with the distinct cluster structure visible in the PCA plot. As this is a single dataset without external validation, results should be interpreted with caution.
+
 ![Heatmap](plots/heatmap.png)
+
+### SHAP Feature Importance
+
+The SHAP summary plot shows the most influential genes across all five cancer types. gene_17801 is the strongest predictor for BRCA, while gene_15896 dominates KIRC classification.
+**Note:** Gene IDs will be mapped to HGNC gene names in a future update.
+
+![SHAP_summary](plots/logistic_regression_summary_plot.png)
+
 
 ## Limitations
 - **Single dataset without external validation:** All models are trained and evaluated on one dataset. Performance may not generalise to other cohorts or sequencing protocols.
@@ -86,7 +101,7 @@ Despite PC1 and PC2 explaining only 10.0% and 8.1% of the total variance respect
 
 Clone the repository and navigate to the project directory:
 ```bash
-git clone https://github.com/xx/rna-seq
+git clone https://github.com/shmuen/rna-seq
 cd rna-seq
 ```
 
@@ -103,6 +118,13 @@ tuning:
   enabled: true   # enable hyperparameter tuning via GridSearchCV
 
 run_nested_cv: true  # enable nested cross-validation for unbiased performance estimates
+```
+
+To run only specific models, adjust the `model` parameter in `config.yaml`:
+
+```yaml
+model: ["randomforest", "svm", "logistic_regression", "xgboost"]
+# to run a single model: model: ["randomforest"]
 ```
 
 ## References
