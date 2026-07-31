@@ -92,6 +92,7 @@ rule pca:
         "scripts/pca.py"
 
 rule tune_models:
+    # NOTE: PCA is fitted inside CV to prevent leakage
     input:
         X_train = "results/split/X_train.csv",
         y_train = "results/split/y_train.csv"
@@ -149,6 +150,7 @@ rule predict:
         "scripts/predict.py"
 
 rule shap_analysis:
+    # NOTE: SHAP is computed on scaled (pre-PCA) features for biological interpretability
     input:
         X_train_scaled = "results/scale/X_train_scaled.csv",
         X_test_scaled = "results/scale/X_test_scaled.csv",
@@ -204,6 +206,7 @@ rule evaluate_metrics:
         model = "results/models/{model}.pkl"
     output:
         report = "results/metrics/{model}_report.csv",
+        summary = "results/metrics/{model}_summary.csv",
         cm = "results/metrics/{model}_cm.csv",
         roc = "results/metrics/{model}_roc.csv",
         calibration = "results/metrics/{model}_calibration.csv"
@@ -256,12 +259,13 @@ rule plot_metrics:
 rule compare_models:
     input:
         reports = expand("results/metrics/{model}_report.csv", model=MODEL),
+        summaries = expand("results/metrics/{model}_summary.csv", model=MODEL),
         bench = expand("benchmarks/train_{model}.txt", model=MODEL),
         roc = expand("results/metrics/{model}_roc.csv", model=MODEL),
         nested_cv = expand("results/metrics/{model}_nested_cv.csv", model=MODEL) \
             if config.get("run_nested_cv", False) else [] 
     output:
-        summary = "results/comparison/model_comparison.csv",
+        comparison = "results/comparison/model_comparison.csv",
         plot = "results/comparison/barplot.png",
         heat = "results/comparison/heatmap.png",
     log:

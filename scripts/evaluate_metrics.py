@@ -19,19 +19,18 @@ classes = model.classes_
 #create and save report of metrics
 report = pd.DataFrame(classification_report(y_test, y_pred, output_dict=True)).T
 
+#get accuracy for separate output for model metrics and remove accuracy from report
+accuracy = report["precision"]["accuracy"]
+report = report.drop("accuracy")
+report.to_csv(snakemake.output.report)
+
 #cohen-kappa-score and MCC as additional metrics
 kappa = cohen_kappa_score(y_test, y_pred)
 mcc = matthews_corrcoef(y_test, y_pred)
 
-kappa_mcc = pd.DataFrame({
-    "precision": [None, None],
-    "recall": [None, None],
-    "f1-score": [kappa, mcc],
-    "support": [None, None]
-}, index = ["kappa", "mcc"])
-
-report = pd.concat([report, kappa_mcc])
-report.to_csv(snakemake.output.report)
+#combine accuracy, kappa and mcc as model summary and save to file
+model_summary = pd.DataFrame({"accuracy": [accuracy], "kappa": [kappa], "mcc": [mcc]})
+model_summary.to_csv(snakemake.output.summary)
 
 #calculate confusion matrix
 cm =confusion_matrix(y_test, y_pred)
