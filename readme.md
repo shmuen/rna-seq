@@ -70,6 +70,14 @@ without PCA to ensure SHAP values map directly to genes rather than principal co
 ### Rule graph of Snakemake workflow
 ![DAG](plots/rulegraph.png)
 
+## Testing
+The pipeline includes a pytest suite (`tests/`) covering data preprocessing, train/test splitting, scaling, PCA and evaluation metrics. Particular focus is placed on preventing data leakage between train and test sets; dedicated tests confirm that the scaler and PCA are fit exclusively on training data and remain unaffected by test set content.
+
+Run the test suite with:
+​```
+pytest tests/ -v
+​```
+
 ## Results
 
 ### PCA of Gene Expression Profiles
@@ -93,7 +101,9 @@ The SHAP summary plot shows the most influential genes across all five cancer ty
 ## Limitations
 - **Single dataset without external validation:** All models are trained and evaluated on one dataset. Performance may not generalise to other cohorts or sequencing protocols.
 - **Simplified problem setting:** The selected cancer types are known to be well-separated in gene expression space, making this a relatively easy classification task compared to real-world scenarios.
-- **Hyperparameter tuning:** Scaler and PCA were fitted on the entire training set prior to cross-validation, which introduces a small optimistic bias in hyperparameter tuning.
+- **Minor tuning/training mismatch:** During hyperparameter tuning and 
+nested CV, PCA is refit independently within each CV fold (on a subset of the training data) to prevent leakage between folds. The final model, however, is trained using PCA fitted once on the entire training set. This means selected hyperparameters are optimised for a slightly 
+different PCA fit than the one used in final training; this is a minor inconsistensy rather than a source of data leakage.
 - **PCA information loss:** Dimensionality reduction to 50 components retains only a fraction of total variance, potentially discarding relevant signal.
 
 ## Usage
@@ -115,9 +125,11 @@ Hyperparameter tuning as well as nested cross-validation is optional and can be 
 
 ```yaml
 tuning:
-  enabled: true   # enable hyperparameter tuning via GridSearchCV
+  enabled: true   
+# enable hyperparameter tuning via GridSearchCV
 
-run_nested_cv: true  # enable nested cross-validation for unbiased performance estimates
+run_nested_cv: true  
+# enable nested cross-validation for unbiased performance estimates
 ```
 
 To run only specific models, adjust the `model` parameter in `config.yaml`:
