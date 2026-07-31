@@ -14,19 +14,21 @@ metrics = ["accuracy", "macro avg", "mcc", "kappa"]
 # get nested_cv evaluation if exists
 nested_cv_files = snakemake.input.get("nested_cv", [])
  
-# iterate over all models, get metrics, the time benchmark and macro AUC
+# iterate over all models, get metrics, summaries, the time benchmark and macro AUC
 rows = []
-for model, bench, roc, ncv in zip(
+for model, summary, bench, roc, ncv in zip(
     snakemake.input.reports,
+    snakemake.input.summaries,
     snakemake.input.bench,
     snakemake.input.roc,
     nested_cv_files or [None] * len(snakemake.input.reports)
     ):
     model_name = Path(model).stem.replace("_report", "")
-    tmp = pd.read_csv(model, index_col=0)
-    row = tmp.loc[metrics, ["f1-score"]].T
+    # create row with summary output for model and macro avg for the f1-score
+    row = pd.read_csv(summary, index_col=0)
     row.index = [model_name]
- 
+    row["macro avg"] = pd.read_csv(model, index_col=0).loc["macro avg", "f1-score"]
+
     # add training time from benchmark file
     row["train time"] = pd.read_csv(bench, sep="\t")["s"].item()
  
@@ -39,7 +41,7 @@ for model, bench, roc, ncv in zip(
     rows.append(row)
  
 # create summary dataframe with all models and save to file
-df_summary = pd.concat(rows).rename(
+df_comparison = pd.concat(rows).rename(
     columns={
         "accuracy": "Accuracy",
         "macro avg": "F1",
@@ -55,10 +57,10 @@ df_summary = pd.concat(rows).rename(
         "xgboost": "XGBoost"
     }
 )
-df_summary.round(3).to_csv(snakemake.output.summary)
+df_comparison.round(3).to_csv(snakemake.output.comparison)
  
 # dataframes for plots without kappa and train time
-df_barplot = df_summary.drop(columns=["Kappa", "train time"])
+df_barplot = df_comparison.drop(columns=["Kappa", "train time"])
  
 # create long format for grouped barplot
 df_long = df_barplot.reset_index(names="model").melt(id_vars="model", var_name="metric", value_name="value")
@@ -76,11 +78,11 @@ plt.close()
 # plot and save heatmap with metrics annotated with values
 plt.figure()
 ax = sns.heatmap(
-    df_summary.drop(columns=["train time"]),
+    df_comparison.drop(columns=["train time"]),
     annot=True,
     fmt=".3f",
     cmap="RdYlGn",
-    vmin=df_summary.drop(columns=["train time"]).min().min() * 0.99,  # slightly below minimum for better contrast
+    vmin=df_comparison.drop(columns=["train time"]).min().min() * 0.99,  # slightly below minimum for better contrast
     vmax=1.0
 )
 ax.xaxis.tick_top()
