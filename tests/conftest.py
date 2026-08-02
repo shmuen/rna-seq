@@ -6,6 +6,12 @@ from unittest.mock import MagicMock
 from sklearn.ensemble import RandomForestClassifier
 
 CLASS_NAMES = ["BRCA", "COAD", "KIRC", "LUAD", "PRAD"]
+TEST_GRIDS = {
+    "randomforest": {"n_estimators": [10, 20]},
+    "logistic_regression": {"C": [0.1, 1.0]},
+    "svm": {"C": [0.1, 1.0]},
+    "xgboost": {"n_estimators": [10, 20]},
+}
 
 # ── basic data ─────────────────────────────────────────────────────────────────
 
@@ -72,8 +78,24 @@ def pca_data(tmp_path):
 
 
 @pytest.fixture
+def tune_data(tmp_path):
+    """Raw (unscaled) train data with labels, as used by tune_models.py 
+    and nested_cv.py, which apply scaling and PCA internally via Pipeline."""
+    np.random.seed(42)
+    n_per_class = 15
+    X_train = _make_gene_df(n_per_class* len(CLASS_NAMES), distribution="uniform")
+    y_train = pd.DataFrame({"Class": list(range(len(CLASS_NAMES)))* n_per_class})
+
+    X_train_path = tmp_path / "X_train.csv"
+    y_train_path = tmp_path / "y_train.csv"
+    X_train.to_csv(X_train_path)
+    y_train.to_csv(y_train_path)
+    return X_train_path, y_train_path
+
+
+@pytest.fixture
 def combined_data(tmp_path):
-    """Combined data after preprocessing (for split and evaluate)."""
+    """Combined data after preprocessing (for evaluate_metrics)."""
     np.random.seed(42)
     rna = _make_gene_df(50)
     df = rna.copy()
@@ -88,7 +110,7 @@ def combined_data(tmp_path):
 
 @pytest.fixture
 def preprocess_mock(raw_data, tmp_path):
-    """Snakemake-Mock for preprocess.py"""
+    """Snakemake mock for preprocess.py"""
     rna_path, label_path = raw_data
 
     mock = MagicMock()
@@ -102,7 +124,8 @@ def preprocess_mock(raw_data, tmp_path):
 
 @pytest.fixture
 def split_mock(combined_data, tmp_path):
-    """Snakemake-Mock for split_data.py"""
+    """Snakemake mock for split_data.py"""
+
     mock = MagicMock()
     mock.input.data       = str(combined_data)
     mock.output.X_train   = str(tmp_path / "X_train.csv")
@@ -117,7 +140,7 @@ def split_mock(combined_data, tmp_path):
 
 @pytest.fixture
 def scale_mock(split_data, tmp_path):
-    """Snakemake-Mock for scale.py"""
+    """Snakemake mock for scale.py"""
     X_train_path, X_test_path = split_data
 
     mock = MagicMock()
@@ -132,8 +155,7 @@ def scale_mock(split_data, tmp_path):
 
 @pytest.fixture
 def pca_mock(pca_data, tmp_path):
-    """Snakemake-Mock for pca.py"""
-
+    """Snakemake mock for pca.py"""
     X_train_scaled_path, X_test_scaled_path, y_train_path, mapping_path = pca_data
 
     mock = MagicMock()
@@ -152,8 +174,53 @@ def pca_mock(pca_data, tmp_path):
 
 
 @pytest.fixture
+def tune_mock_factory(tune_data, tmp_path):
+    """Factory for Snakemake mock for tune_models.py, parametrizable by model."""
+    X_train_path, y_train_path = tune_data
+
+    def _make_mock(model_name, param_grid=None, default_grid=None, tune = True):
+        mock = MagicMock()
+        mock.input.X_train = str(X_train_path)
+        mock.input.y_train = str(y_train_path)
+        mock.params.tune = tune
+        mock.params.param_grid = param_grid
+        mock.params.default_grid = default_grid
+        mock.params.n_components = 5
+        mock.params.seed = 42
+        mock.threads = 4
+        mock.wildcards.model = model_name
+        mock.output.best_params = str(tmp_path / f"best_params_{model_name}.json")
+        mock.log = [str(tmp_path / f"tune_{model_name}.log")]
+        return mock
+
+    return _make_mock
+
+
+@pytest.fixture
+def nested_cv_mock_factory(tune_data, tmp_path):
+    """Factory for Snakemake mock for nested_cv.py, parametrizable by model."""
+    X_train_path, y_train_path = tune_data
+
+    def _make_mock(model_name, param_grid, n_components=5, threads=1):
+        mock = MagicMock()
+        mock.input.X_train = str(X_train_path)
+        mock.input.y_train = str(y_train_path)
+        mock.params.tune = True
+        mock.params.param_grid = param_grid
+        mock.params.n_components = n_components
+        mock.params.seed = 42
+        mock.threads = threads
+        mock.wildcards.model = model_name
+        mock.output.nested_cv_score = str(tmp_path / f"nested_cv_{model_name}.csv")
+        mock.log = [str(tmp_path / f"nested_cv_{model_name}.log")]
+        return mock
+
+    return _make_mock
+
+
+@pytest.fixture
 def evaluate_mock(combined_data, tmp_path):
-    """Snakemake-Mock for evaluate_metrics.py"""
+    """Snakemake mock for evaluate_metrics.py"""
 
     df = pd.read_csv(combined_data, index_col=0)
     X = df.drop(columns=["Class"]).values
