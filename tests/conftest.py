@@ -41,7 +41,7 @@ def raw_data(tmp_path):
 
 @pytest.fixture
 def split_data(tmp_path):
-    """split data: split X and Y data for scaling."""
+    """split data: split X data for scaling."""
     np.random.seed(42)
     X_train = _make_gene_df(40)
     X_test = _make_gene_df(10)
@@ -84,7 +84,7 @@ def tune_data(tmp_path):
     np.random.seed(42)
     n_per_class = 15
     X_train = _make_gene_df(n_per_class* len(CLASS_NAMES), distribution="uniform")
-    y_train = pd.DataFrame({"Class": list(range(len(CLASS_NAMES)))* n_per_class})
+    y_train = pd.DataFrame({"Class": list(range(len(CLASS_NAMES))) * n_per_class})
 
     X_train_path = tmp_path / "X_train.csv"
     y_train_path = tmp_path / "y_train.csv"
@@ -95,7 +95,7 @@ def tune_data(tmp_path):
 
 @pytest.fixture
 def combined_data(tmp_path):
-    """Combined data after preprocessing (for evaluate_metrics)."""
+    """Combined data after preprocessing (for split_data and evaluate_metrics)."""
     np.random.seed(42)
     rna = _make_gene_df(50)
     df = rna.copy()
@@ -105,6 +105,50 @@ def combined_data(tmp_path):
     df.to_csv(path)
     return path
 
+
+@pytest.fixture
+def compare_data(tmp_path):
+    """Data for compare models test."""
+
+    def mkrand(min_, max_, n):
+        return np.random.uniform(min_, max_, n)
+    
+    summary_header = ["accuracy", "kappa", "mcc"]
+
+    np.random.seed(42)
+
+    #3 models, model 1: best accurcy, 3 worst accuracy
+    mi = [0.75, 0.6, 0.45]
+    ma = [0.95, 0.75, 0.6]
+    report, summary, nested, roc = [], [], [], []
+    for k in range(3):
+        report.append(pd.DataFrame(mkrand(mi[k], ma[k], 1), columns = ["f1-score"], index = ["macro avg"]))
+        summary.append(pd.DataFrame([mkrand(mi[k], ma[k], 3)], columns = summary_header))
+        nested.append(pd.DataFrame(mkrand(mi[k], ma[k], 1), columns = ["mean"]))
+
+        roc_tmp = []
+        for cls in range(5):
+            roc_tmp.append([cls, np.random.uniform(mi[k], ma[k])])
+        roc.append(pd.DataFrame(roc_tmp, columns = ["class", "auc"]))
+                       
+    bench = np.random.uniform([2, 3, 4], [3, 4, 5])
+    
+    report_paths = [str(f"{tmp_path}/model{i}_report.csv") for i in range(1,4)]
+    summary_paths = [str(f"{tmp_path}/model{i}_summary.csv") for i in range(1,4)]
+    bench_paths = [str(f"{tmp_path}/train_model{i}.txt") for i in range(1,4)]
+    roc_paths = [str(f"{tmp_path}/model{i}_roc.csv") for i in range(1,4)]
+    ncv_paths = [str(f"{tmp_path}/model{i}_nested_cv.csv") for i in range(1,4)]
+
+    for k in range(3):
+        report[k].to_csv(report_paths[k])
+        summary[k].to_csv(summary_paths[k])
+        roc[k].to_csv(roc_paths[k], index=False)
+        nested[k].to_csv(ncv_paths[k], index = False)
+        with open (bench_paths[k], "w") as f:
+            f.write("s\n")
+            f.write(f"{bench[k]}\n")
+
+    return report_paths, summary_paths, bench_paths, roc_paths, ncv_paths
 
 # ── Snakemake mocks ────────────────────────────────────────────────────────────
 
@@ -259,4 +303,24 @@ def evaluate_mock(combined_data, tmp_path):
     mock.output.roc         = str(tmp_path / "roc.csv")
     mock.output.calibration = str(tmp_path / "calibration.csv")
     mock.log = [str(tmp_path / "evaluate.log")]
+    return mock, tmp_path
+
+
+@pytest.fixture
+def compare_mock(compare_data, tmp_path):
+    """Snakemake mock for compare_models.py"""
+    report_paths, summary_paths, bench_paths, roc_paths, ncv_paths = compare_data
+
+    mock = MagicMock()
+    mock.config = {"model": ["model1", "model2", "model3"]}
+    mock.input.reports      = report_paths
+    mock.input.summaries    = summary_paths
+    mock.input.bench        = bench_paths
+    mock.input.roc          = roc_paths
+    mock.input.nested_cv = ncv_paths
+
+    mock.output.comparison  = str(tmp_path / "model_comparison.csv")
+    mock.output.plot        = str(tmp_path / "barplot.png")
+    mock.output.heat        = str(tmp_path / "heatmap.png")
+
     return mock, tmp_path
