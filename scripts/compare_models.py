@@ -6,28 +6,30 @@ and optionally nested CV scores into a summary CSV, barplot, and heatmap.
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
  
 # list with names of metrics to compare
 metrics = ["accuracy", "macro avg", "mcc", "kappa"]
  
 # get nested_cv evaluation if exists
-nested_cv_files = snakemake.input.get("nested_cv", [])
+nested_cv_files = snakemake.input.nested_cv
+
+# get model names from config file
+model_names = snakemake.config["model"]
  
 # iterate over all models, get metrics, summaries, the time benchmark and macro AUC
 rows = []
-for model, summary, bench, roc, ncv in zip(
+for model_name, report, summary, bench, roc, ncv in zip(
+    model_names,
     snakemake.input.reports,
     snakemake.input.summaries,
     snakemake.input.bench,
     snakemake.input.roc,
     nested_cv_files or [None] * len(snakemake.input.reports)
     ):
-    model_name = Path(model).stem.replace("_report", "")
     # create row with summary output for model and macro avg for the f1-score
     row = pd.read_csv(summary, index_col=0)
     row.index = [model_name]
-    row["macro avg"] = pd.read_csv(model, index_col=0).loc["macro avg", "f1-score"]
+    row["macro avg"] = pd.read_csv(report, index_col=0).loc["macro avg", "f1-score"]
 
     # add training time from benchmark file
     row["train time"] = pd.read_csv(bench, sep="\t")["s"].item()
@@ -49,12 +51,6 @@ df_comparison = pd.concat(rows).rename(
         "kappa": "Kappa",
         "auc_macro": "AUC",
         "nested_cv": "N. CV F1"
-    },
-    index={
-        "randomforest": "Random Forest",
-        "svm": "SVM",
-        "logistic_regression": "Logistic Regression",
-        "xgboost": "XGBoost"
     }
 )
 df_comparison.round(3).to_csv(snakemake.output.comparison)
